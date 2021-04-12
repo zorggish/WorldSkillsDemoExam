@@ -1,62 +1,58 @@
 package ui;
 
-import com.sun.tools.javac.Main;
 import database.Product;
 
 import javax.swing.*;
 import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
-import java.sql.SQLException;
 
 public class AddForm extends JFrame
 {
     private JTextField titleField;
+    private JTextField manufacturerIdField;
     private JTextField costField;
     private JTextField descriptionField;
     private JTextField pathField;
-    private JTextField manufacturerIDField;
-    private JRadioButton yesRadioButton;
-    private JRadioButton notRadioButton;
-    private JButton addButton;
+    private JRadioButton yesRadio;
+    private JRadioButton notRadio;
     private JLabel statusLabel;
+    private JButton okButton;
+    private JButton cancelButton;
     private JPanel mainPanel;
-    private JLabel typeField;
-    private MainForm mainForm;
-    private boolean isEdit;
-    private Product product;
 
-    public void open()
+    private MainForm mainForm;
+    private Product product;
+    private boolean edit;
+
+    public void openAdd()
     {
+        edit = false;
+        statusLabel.setText("Добавление продукта");
         product = new Product();
-        statusLabel.setText("");
         titleField.setText("");
         costField.setText("");
         descriptionField.setText("");
         pathField.setText("");
-        manufacturerIDField.setText("");
-        isEdit = false;
-        addButton.setText("Добавить");
-        typeField.setText("Добавление продукта");
+        yesRadio.setSelected(true);
+        manufacturerIdField.setText("");
+        okButton.setText("Добавить");
         setVisible(true);
     }
 
-    public void edit(Product product)
+    public void openEdit(Product product)
     {
-        this.product = new Product();
-        this.product.ID = product.ID;
-        statusLabel.setText("");
+        edit = true;
+        statusLabel.setText("Редактирование продукта");
+        this.product = product;
         titleField.setText(product.title);
-        costField.setText(Double.toString(product.cost));
+        costField.setText(String.valueOf(product.cost));
         descriptionField.setText(product.description);
         pathField.setText(product.mainImagePath);
-        manufacturerIDField.setText(Integer.toString(product.manufacturerID));
-        if(product.isActive)
-            yesRadioButton.setSelected(true);
-        else notRadioButton.setSelected(true);
-        isEdit = true;
-        addButton.setText("Сохранить");
-        typeField.setText("Редактирование продукта");
+        yesRadio.setSelected(product.isActive);
+        notRadio.setSelected(!product.isActive);
+        manufacturerIdField.setText(String.valueOf(product.manufacturerId));
+        okButton.setText("Сохранить");
         setVisible(true);
     }
 
@@ -65,43 +61,41 @@ public class AddForm extends JFrame
         this.mainForm = mainForm;
         setContentPane(mainPanel);
 
-        setTitle("Добавление продукта");
-        setMinimumSize(new Dimension(500, 500));
-        setLocation(Toolkit.getDefaultToolkit().getScreenSize().width/2-250, Toolkit.getDefaultToolkit().getScreenSize().height/2-250);
+        setTitle("Салон красоты 'Шарм'");
+        Dimension screenSize = Toolkit.getDefaultToolkit().getScreenSize();
+        setMinimumSize(new Dimension(400, 400));
+        setLocation(screenSize.width/2-200, screenSize.height/2-200);
 
         ButtonGroup buttonGroup = new ButtonGroup();
-        buttonGroup.add(yesRadioButton);
-        buttonGroup.add(notRadioButton);
+        buttonGroup.add(yesRadio);
+        buttonGroup.add(notRadio);
 
-        addButton.addActionListener(new ActionListener() {
+        okButton.addActionListener(new ActionListener() {
             @Override
             public void actionPerformed(ActionEvent e) {
                 if(titleField.getText().length() > 50)
                 {
-                    statusLabel.setText("Ошибка: слишком длинное название");
+                    statusLabel.setText("Длина названия не может быть больше 50 символов");
                     return;
                 }
-                else product.setTitle(titleField.getText());
-                try {
-                    product.setCost(Double.parseDouble(costField.getText()));
-                    product.setManufacturerID(Integer.parseInt(manufacturerIDField.getText()));
-                } catch (Exception exception) {
-                    statusLabel.setText("Ошибка формата");
-                    return;
-                }
-                product.setDescription(descriptionField.getText());
-                product.setActive(yesRadioButton.isSelected());
-                product.setMainImagePath(pathField.getText());
-                try {
-                    if(isEdit)
-                        mainForm.productManager.update(product);
-                    else mainForm.productManager.add(product);
-                    setVisible(false);
-                    mainForm.reloadTable();
+                product.title = titleField.getText();
+                product.cost = Double.parseDouble(costField.getText());
+                product.description = descriptionField.getText();
+                product.mainImagePath = pathField.getText();
+                product.isActive = yesRadio.isSelected();
+                product.manufacturerId = Integer.parseInt(manufacturerIdField.getText());
+                if(edit)
+                    mainForm.productManager.update(product);
+                else mainForm.productManager.add(product);
+                mainForm.reloadTable();
+                setVisible(false);
+            }
+        });
 
-                } catch (SQLException throwables) {
-                    statusLabel.setText("Ошибка подключения");
-                }
+        cancelButton.addActionListener(new ActionListener() {
+            @Override
+            public void actionPerformed(ActionEvent e) {
+                setVisible(false);
             }
         });
 

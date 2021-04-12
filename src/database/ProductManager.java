@@ -1,5 +1,7 @@
 package database;
 
+import com.mysql.cj.jdbc.MysqlDataSource;
+
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.ResultSet;
@@ -8,78 +10,110 @@ import java.util.Vector;
 
 public class ProductManager
 {
-    MysqlDatabase db;
+    MysqlDataSource source;
 
-    public ProductManager(MysqlDatabase database)
+    public ProductManager(MysqlDataSource source)
     {
-        db = database;
+        this.source = source;
     }
 
-    public int add(Product product) throws SQLException
+    public void add(Product product)
     {
-        try(Connection c = db.getConnection())
+        try
         {
-            String sql = "INSERT INTO Product (Title, Cost, Description, MainImagePath, IsActive, ManufacturerID) VALUES (?, ?, ?, ?, ?, ?);";
-            PreparedStatement ps = c.prepareStatement(sql);
-            ps.setString(1, product.title);
-            ps.setDouble(2, product.cost);
-            ps.setString(3, product.description);
-            ps.setString(4, product.mainImagePath);
-            ps.setInt(5, (product.isActive ? 1 : 0));
-            ps.setInt(6, product.manufacturerID);
-            System.out.println(ps.toString());
-            return ps.executeUpdate();
+            try(Connection connection = source.getConnection())
+            {
+                String sql = "INSERT INTO Product (Title, Cost, Description, MainImagePath, IsActive, ManufacturerID) VALUES (?, ?, ?, ?, ?, ?);";
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                preparedStatement.setString(1, product.title);
+                preparedStatement.setDouble(2, product.cost);
+                preparedStatement.setString(3, product.description);
+                preparedStatement.setString(4, product.mainImagePath);
+                preparedStatement.setBoolean(5, product.isActive);
+                preparedStatement.setInt(6, product.manufacturerId);
+                System.out.println(preparedStatement.toString());
+                preparedStatement.executeUpdate();
+            }
+        }
+        catch (SQLException e)
+        {
+            System.out.println("SQL connection error!");
         }
     }
 
-    public int update(Product product) throws SQLException {
-        try(Connection c = db.getConnection())
+    public void update(Product product)
+    {
+        try
         {
-            String sql = "UPDATE Product SET Title=?, Cost=?, Description=?, MainImagePath=?, IsActive=?, ManufacturerID=? WHERE ID=?;";
-            PreparedStatement ps = c.prepareStatement(sql);
-            ps.setString(1, product.title);
-            ps.setDouble(2, product.cost);
-            ps.setString(3, product.description);
-            ps.setString(4, product.mainImagePath);
-            ps.setInt(5, (product.isActive ? 1 : 0));
-            ps.setInt(6, product.manufacturerID);
-            ps.setInt(7, product.ID);
-            return ps.executeUpdate();
+            try(Connection connection = source.getConnection())
+            {
+                String sql = "UPDATE Product SET Title=?, Cost=?, Description=?, MainImagePath=?, IsActive=?, ManufacturerID=? WHERE ID=?";
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                preparedStatement.setString(1, product.title);
+                preparedStatement.setDouble(2, product.cost);
+                preparedStatement.setString(3, product.description);
+                preparedStatement.setString(4, product.mainImagePath);
+                preparedStatement.setBoolean(5, product.isActive);
+                preparedStatement.setInt(6, product.manufacturerId);
+                preparedStatement.setInt(7, product.id);
+                preparedStatement.executeUpdate();
+            }
+        }
+        catch (SQLException e)
+        {
+            System.out.println("SQL connection error!");
         }
     }
 
-    public Vector<Product> getAll() throws SQLException
+    public void delete(Product product)
     {
-        try(Connection c = db.getConnection())
+        try
         {
-            String sql = "SELECT * FROM Product;";
-            PreparedStatement ps = c.prepareStatement(sql);
-            ResultSet result = ps.executeQuery();
-            Vector<Product> products = new Vector<Product>();
-            while(result.next())
-                products.add(new Product(result.getInt(1),
-                                         result.getString(2),
-                                         result.getDouble(3),
-                                         result.getString(4),
-                                         result.getString(5),
-                                         result.getInt(6) == 1,
-                                         result.getInt(7)
-                ));
-            return products;
+            try(Connection connection = source.getConnection())
+            {
+                String sql = "DELETE FROM Product WHERE Id=?;";
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                preparedStatement.setInt(1, product.id);
+                System.out.println(preparedStatement.toString());
+                preparedStatement.executeUpdate();
+            }
+        }
+        catch (SQLException e)
+        {
+            System.out.println("SQL connection error!");
         }
     }
 
-    public int delete(Product p)
+    public Vector<Product> getAll()
     {
-        try(Connection c = db.getConnection())
+        try
         {
-            String sql = "DELETE FROM Product WHERE ID=?;";
-            PreparedStatement preparedStatement = c.prepareStatement(sql);
-            preparedStatement.setInt(1, p.ID);
-            return preparedStatement.executeUpdate();
+            try(Connection connection = source.getConnection())
+            {
+                String sql = "select * from product, manufacturer WHERE Product.ManufacturerID = Manufacturer.ID;";
+                PreparedStatement preparedStatement = connection.prepareStatement(sql);
+                ResultSet result = preparedStatement.executeQuery();
+                Vector<Product> products = new Vector<Product>();
+                while(result.next())
+                {
+                    Product product = new Product();
+                    product.id = result.getInt(1);
+                    product.title = result.getString(2);
+                    product.cost = result.getInt(3);
+                    product.description = result.getString(4);
+                    product.mainImagePath = result.getString(5);
+                    product.isActive = result.getBoolean(6);
+                    product.manufacturerId = result.getInt(7);
+                    product.manufacturer = result.getString(9);
+                    products.add(product);
+                }
+                return products;
+            }
         }
-        catch (Exception e)
-        { }
-        return 0;
+        catch (SQLException e)
+        {
+            System.out.println("SQL connection error!");
+        }
+        return null;
     }
 }
